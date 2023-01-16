@@ -16,8 +16,9 @@ char history[MAX_HISTORY_LENGTH][MAX_COMMAND_LENGTH]; // istoric comenzi
 int history_index = -1; // indexul curent in istoric
 
 int main(int argc, char *argv[]) {
+    printf("dbxcli> You can see the list of the command any time by type help\n");
     while (1) {
-        printf("dbxcli> You can see the list of the command any time by type help");
+        printf("dbxcli> ");
         fflush(stdout);
 
         char command[MAX_COMMAND_LENGTH];
@@ -51,7 +52,6 @@ int main(int argc, char *argv[]) {
 
             glob_t glob_result;
             int glob_return = glob(src, GLOB_TILDE, NULL, &glob_result);
-            printf("glob_return is %d", glob_return);
             if (glob_return != 0) {
                 continue;
             }
@@ -67,17 +67,26 @@ int main(int argc, char *argv[]) {
             }
 
             globfree(&glob_result);
-        } else if (strcmp(token, "mv") == 0) {
+        }else if (strcmp(token, "mv") == 0) {
+            // handle mv command
             char *src = strtok(NULL, " ");
-            char *dest = strtok(NULL, " ");
-            if (src == NULL || dest == NULL) {
+            char *dst = strtok(NULL, " ");
+            if (src == NULL || dst == NULL) {
                 printf("mv: Invalid arguments\n");
-                continue;
+                printf("Usage: mv <source> <destination>\n");
+            } else {
+                if (rename(src, dst) != 0) {
+                    if(errno == EISDIR)
+                        printf("mv: Failed to move %s to %s, because they are not of the same type\n", src, dst);
+                    else
+                        printf("mv: Failed to move %s to %s\n", src, dst);
+                    printf("Reason: %s\n",strerror(errno));
+                } else {
+                    printf("mv: Successfully moved %s to %s\n", src, dst);
+                }
             }
-            if (rename(src, dest) != 0) {
-                printf("mv: Failed to move %s to %s\n", src, dest);
-            }
-        } else if (strcmp(token, "mkdir") == 0) {
+        }
+        else if (strcmp(token, "mkdir") == 0) {
             char *dir = strtok(NULL, " ");
             if (dir == NULL) {
                 printf("mkdir: Invalid arguments\n");
@@ -177,10 +186,11 @@ dbxcli> ls
 testfile1.txt testdir/
 
 dbxcli> cp testfile1.txt testfile2.txt
+dbxcli> cp testdir testdir2
 dbxcli> ls
 testfile1.txt testfile2.txt testdir/
 
-dbxcli> mv testfile2.txt testdir/
+dbxcli> mv testfile1.txt testdir/
 dbxcli> ls
 testfile1.txt testdir/
 
